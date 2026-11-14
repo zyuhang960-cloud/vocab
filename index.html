@@ -14,7 +14,10 @@
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
      display:flex;flex-direction:column;overflow:hidden}
-header{flex:none;padding:10px 14px 6px;border-bottom:1px solid var(--line)}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
+.tabs a{flex:1;text-align:center;padding:11px 0;color:var(--dim);text-decoration:none;font-size:14.5px;font-weight:600}
+.tabs a.on{color:#7dd3fc;box-shadow:inset 0 -2px 0 #7dd3fc}
+header{flex:none;padding:8px 14px 6px;border-bottom:1px solid var(--line)}
 .stats{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim)}
 .stats b{color:#7dd3fc;font-size:14px}
 .bar{height:4px;background:#1c2330;border-radius:3px;overflow:hidden;margin-top:8px}
@@ -55,6 +58,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
 </style>
 </head>
 <body>
+<div class="tabs"><a href="./" class="on">背单词</a><a href="syn.html">同义替换</a><a href="sent.html">长难句</a></div>
 <header>
   <div class="stats">
     <span>池子 <b id="pool">–</b></span>
