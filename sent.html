@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>长难句</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#242c38;--fg:#e6edf3;--dim:#8b949e;--ok:#22c55e;--part:#f59e0b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;padding-bottom:76px}
+.tabs{display:flex;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+.tabs a{flex:1;text-align:center;padding:11px 0;color:var(--dim);text-decoration:none;font-size:14.5px;font-weight:600}
+.tabs a.on{color:#7dd3fc;box-shadow:inset 0 -2px 0 #7dd3fc}
+main{padding:14px}
+.tag{font-size:12.5px;color:var(--dim)}
+.sent{font-size:19px;font-weight:500;line-height:1.62;margin:9px 0 0}
+input{width:100%;background:#0f1217;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px;color:var(--fg);margin-top:14px}
+.acts{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+button{border:none;border-radius:13px;padding:14px 10px;font-size:16px;font-weight:700;background:#252d3a;color:var(--fg)}
+button:active{transform:scale(.97)}
+.b-chk{background:#2b3648}
+.part{background:var(--part);color:#2c1b00}
+.ok{background:var(--ok);color:#04240f}
+.ans{display:none;margin-top:12px;padding:12px;border-radius:12px;background:#0f1217;border:1px dashed var(--line);font-size:16.5px}
+.ans.show{display:block}
+.ans b{color:#fcd34d}
+.verdict{font-size:13.5px;color:var(--dim);margin-bottom:6px}
+.blk{display:none;margin-top:12px;padding:12px;border-radius:12px;background:#0f1217;font-size:15.5px;line-height:1.72;border-left:3px solid var(--line)}
+.blk.show{display:block}
+.blk h4{margin:0 0 6px;font-size:12.5px;color:var(--dim);font-weight:600}
+.blk.ana{border-left-color:var(--part)} .blk.ana h4{color:#fbbf24}
+.blk.zh{border-left-color:var(--ok)} .blk.zh h4{color:#4ade80}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+nav button{flex:1;background:#1d242f}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="./">背单词</a><a href="syn.html">同义替换</a><a href="sent.html" class="on">长难句</a>
+</div>
+<main id="stage"></main>
+<nav><button id="pv">← 上一句</button><button id="nx">下一句 →</button></nav>
+<script src="sent.js?v=20261114a"></script>
+<script>
+(function(){
+'use strict';
+var D=window.SENT||[], KEY='sent_v1', cur=0;
+try{ cur=JSON.parse(localStorage.getItem(KEY)||'{}').cur||0; }catch(e){}
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify({cur:cur})); }catch(e){} }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function render(){
+  if(cur<0)cur=0; if(cur>D.length-1)cur=D.length-1;
+  var q=D[cur], st=document.getElementById('stage');
+  var h='<div class="tag">DAY'+q[0]+' · 第 '+q[1]+' 句 · '+(cur+1)+'/'+D.length+'</div>';
+  h+='<div class="sent">'+esc(q[2])+'</div>';
+  h+='<input id="guess" placeholder="先自己拆句子、想意思（可不填）" autocomplete="off">';
+  h+='<div class="ans" id="ans"></div>';
+  h+='<div class="blk ana" id="bAna"></div><div class="blk zh" id="bZh"></div>';
+  h+='<div class="acts"><button class="b-chk" id="ck">对照答案</button>';
+  if(q[3]) h+='<button class="part" id="aAna">看思路（结构拆解）</button>';
+  h+='<button class="ok" id="aZh">看正确翻译</button></div>';
+  st.innerHTML=h;
+  var g=document.getElementById('guess');
+  document.getElementById('ck').onclick=function(){
+    var v=g.value.trim(), G=(v.match(/[\u4e00-\u9fff]/g)||[]), hit=0;
+    G.forEach(function(c){ if(q[4].indexOf(c)>=0) hit++; });
+    var r=G.length?hit/G.length:0;
+    var vd=v?(r>=.6?'✅ 大意对上了':(r>=.25?'🤏 沾点边':'❌ 差得比较远')):'（没填）';
+    var hl=''; q[4].split('').forEach(function(c){ hl += (/[\u4e00-\u9fff]/.test(c)&&G.indexOf(c)>=0)?'<b>'+c+'</b>':esc(c); });
+    var an=document.getElementById('ans');
+    an.innerHTML='<div class="verdict">'+vd+'</div>参考译文：'+hl; an.classList.add('show');
+  };
+  if(q[3]) document.getElementById('aAna').onclick=function(){
+    var b=document.getElementById('bAna');
+    b.innerHTML='<h4>句子思路</h4>'+esc(q[3]); b.classList.toggle('show');
+  };
+  document.getElementById('aZh').onclick=function(){
+    var b=document.getElementById('bZh');
+    b.innerHTML='<h4>正确翻译</h4>'+esc(q[4]); b.classList.toggle('show');
+  };
+  save();
+}
+document.getElementById('pv').onclick=function(){ cur--; render(); };
+document.getElementById('nx').onclick=function(){ cur++; render(); };
+render();
+})();
+</script>
+</body>
+</html>
