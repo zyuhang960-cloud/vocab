@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>同义替换</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#242c38;--fg:#e6edf3;--dim:#8b949e;--ok:#22c55e;--part:#f59e0b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+     display:flex;flex-direction:column;min-height:100vh;padding-bottom:76px}
+.tabs{display:flex;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+.tabs a{flex:1;text-align:center;padding:11px 0;color:var(--dim);text-decoration:none;font-size:14.5px;font-weight:600}
+.tabs a.on{color:#7dd3fc;box-shadow:inset 0 -2px 0 #7dd3fc}
+main{flex:1;padding:14px}
+.tag{font-size:12.5px;color:var(--dim)}
+.word{font-size:24px;font-weight:700;line-height:1.4;margin:8px 0 0;word-break:break-word}
+input{width:100%;background:#0f1217;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:16px;color:var(--fg);margin-top:14px}
+.acts{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+button{border:none;border-radius:13px;padding:14px 10px;font-size:16px;font-weight:700;background:#252d3a;color:var(--fg)}
+button:active{transform:scale(.97)}
+.b-chk{background:#2b3648}
+.ok{background:var(--ok);color:#04240f}
+.part{background:var(--part);color:#2c1b00}
+.keep{background:#22303f;color:#cfe0ff}
+.ans{display:none;margin-top:12px;padding:12px;border-radius:12px;background:#0f1217;border:1px dashed var(--line);font-size:16.5px}
+.ans.show{display:block}
+.ans b{color:#fcd34d}
+.verdict{font-size:13.5px;color:var(--dim);margin-bottom:6px}
+.panel{display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.panel.show{display:block}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{background:#1e2632;border:1px solid var(--line);border-radius:999px;padding:8px 13px;font-size:15px}
+.chip.on{background:#f59e0b26;border-color:var(--part);color:#fcd34d}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+nav button{flex:1;background:#1d242f}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="./">背单词</a><a href="syn.html" class="on">同义替换</a><a href="sent.html">长难句</a>
+</div>
+<main id="stage"></main>
+<nav><button id="pv">← 上一个</button><button id="nx">下一个 →</button></nav>
+<script src="syn.js?v=20261114a"></script>
+<script>
+(function(){
+'use strict';
+var ALL=[], LABEL=[];
+(window.SYN||[]).forEach(function(g){ g.items.forEach(function(it){ ALL.push({g:g.g,t:it[0],z:it[1]}); }); });
+var KEY='syn_v1';
+var S={del:[],mods:{},cur:0};
+function load(){ try{var o=JSON.parse(localStorage.getItem(KEY)||'{}'); for(var k in o) S[k]=o[k];}catch(e){} if(!S.del)S.del=[]; if(!S.mods)S.mods={}; }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function alive(){ var d={},a=[]; S.del.forEach(function(i){d[i]=1;}); ALL.forEach(function(x,i){ if(!d[i])a.push(i); }); return a; }
+function toks(i){ return S.mods[i] || ALL[i].t; }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+function render(){
+  var al=alive(), st=document.getElementById('stage');
+  if(!al.length){ st.innerHTML='<div style="text-align:center;padding:40px 0"><div style="font-size:22px;font-weight:700">这本清空了 🎉</div></div>'; return; }
+  if(S.cur>al.length-1) S.cur=al.length-1; if(S.cur<0) S.cur=0;
+  var i=al[S.cur], it=ALL[i], tk=toks(i);
+  var k=0; al.slice(0,S.cur+1).forEach(function(x){ if(ALL[x].g===it.g) k++; });
+  var h='<div class="tag">第 '+it.g+' 组 · 第 '+k+' 条 · 剩余 '+al.length+' 条</div>';
+  h+='<div class="word">'+esc(tk.join(' = '))+'</div>';
+  h+='<input id="guess" placeholder="先想中文意思（可不填）" autocomplete="off">';
+  h+='<div class="ans" id="ans"></div>';
+  h+='<div class="acts">';
+  h+='<button class="b-chk" id="ck">对照答案</button>';
+  if(tk.length>1){ h+='<button class="ok" id="bAll">✔ 全部认识 → 删掉整行</button>';
+                   h+='<button class="part" id="bPart">✂ 部分认识 → 只删我认识的</button>'; }
+  else h+='<button class="ok" id="bAll">✔ 认识 → 删掉</button>';
+  h+='<button class="keep" id="bKeep">不认识 → 先留着</button></div>';
+  h+='<div class="panel" id="pPanel"><div class="tag" style="margin-bottom:8px">点一下你认识的那些词，或在下面打字：</div>'+
+     '<div class="chips" id="pChips"></div>'+
+     '<input id="pType" placeholder="我认识的词，空格分隔">'+
+     '<div class="acts" style="flex-direction:row;margin-top:10px"><button class="part" id="pGo" style="flex:1">确认删除</button><button id="pCancel" style="flex:1">取消</button></div></div>';
+  st.innerHTML=h;
+
+  var g=document.getElementById('guess');
+  function chk(){
+    var v=g.value.trim(), G=(v.match(/[\u4e00-\u9fff]/g)||[]), hit=0;
+    G.forEach(function(c){ if(it.z.indexOf(c)>=0) hit++; });
+    var r=G.length?hit/G.length:0;
+    var vd=v?(r>=.6?'✅ 对上了':(r>=.25?'🤏 沾点边':'❌ 对不上')):'（没填）';
+    var hl=''; it.z.split('').forEach(function(c){ hl += (/[\u4e00-\u9fff]/.test(c)&&G.indexOf(c)>=0)?'<b>'+c+'</b>':esc(c); });
+    document.getElementById('ans').innerHTML='<div class="verdict">'+vd+'</div>正确释义：'+hl;
+    document.getElementById('ans').classList.add('show');
+  }
+  document.getElementById('ck').onclick=chk;
+  g.addEventListener('keydown',function(e){ if(e.key==='Enter'){g.blur();chk();} });
+  document.getElementById('bAll').onclick=function(){ S.del.push(i); S.cur=(S.cur>=alive().length)?Math.max(0,alive().length-1):S.cur; save(); render(); };
+  document.getElementById('bKeep').onclick=function(){ S.cur++; save(); render(); };
+  if(tk.length>1){
+    var pend=[], chips=document.getElementById('pChips'), pn=document.getElementById('pPanel'), pt=document.getElementById('pType');
+    tk.forEach(function(t){ var b=document.createElement('div'); b.className='chip'; b.textContent=t;
+      b.onclick=function(){ var j=pend.indexOf(t); if(j<0){pend.push(t);b.classList.add('on');} else {pend.splice(j,1);b.classList.remove('on');} };
+      chips.appendChild(b); });
+    document.getElementById('bPart').onclick=function(){ pend=[]; pt.value=''; pn.classList.add('show'); };
+    document.getElementById('pCancel').onclick=function(){ pn.classList.remove('show'); };
+    document.getElementById('pGo').onclick=function(){
+      var typed=pt.value.split(/[\s,，、;；/]+/).filter(Boolean).map(function(x){return x.toLowerCase();});
+      var drop=[];
+      tk.forEach(function(t){ if(pend.indexOf(t)>=0) return drop.push(t);
+        var tl=t.toLowerCase(); if(typed.indexOf(tl)>=0) return drop.push(t);
+        if(/[\s\/]/.test(tl)){ var n=tl.replace(/[^a-z0-9]/g,''); if(pt.value.toLowerCase().replace(/[^a-z0-9]/g,'').indexOf(n)>=0) drop.push(t); } });
+      if(!drop.length){ alert('还没选、也没打字哦'); return; }
+      var left=tk.filter(function(t){ return drop.indexOf(t)<0; });
+      if(left.length) S.mods[i]=left; else { S.del.push(i); delete S.mods[i]; }
+      if(left.length) S.cur++;
+      save(); render();
+    };
+  }
+}
+document.getElementById('pv').onclick=function(){ S.cur--; save(); render(); };
+document.getElementById('nx').onclick=function(){ S.cur++; save(); render(); };
+load(); render();
+})();
+</script>
+</body>
+</html>
