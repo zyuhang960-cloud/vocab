@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d1117">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>背单词</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#242c38;--fg:#e6edf3;--dim:#8b949e;
+      --know:#22c55e;--vague:#f59e0b;--forgot:#ef4444}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+     display:flex;flex-direction:column;overflow:hidden}
+header{flex:none;padding:10px 14px 6px;border-bottom:1px solid var(--line)}
+.stats{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim)}
+.stats b{color:#7dd3fc;font-size:14px}
+.bar{height:4px;background:#1c2330;border-radius:3px;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#38bdf8);transition:width .3s}
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px 12px}
+.word{font-size:40px;font-weight:700;line-height:1.2;word-break:break-word}
+.word.small{font-size:30px}
+.tip{color:var(--dim);font-size:13.5px;margin-top:10px}
+.ans{margin-top:18px;animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.poz{display:inline-block;font-size:12.5px;color:#0d1117;background:#7dd3fc;border-radius:6px;padding:1px 7px;margin-right:6px;vertical-align:2px;font-weight:700}
+.def{font-size:26px;font-weight:650;line-height:1.45;margin-top:8px}
+.ex{margin-top:18px;padding:13px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.ex .en{font-size:16px;line-height:1.65}
+.ex .zh{font-size:14px;color:var(--dim);margin-top:8px;line-height:1.6}
+.ex .tag{float:right;font-size:11px;color:#8b949e;border:1px solid var(--line);border-radius:6px;padding:0 5px}
+.spk{display:inline-flex;align-items:center;gap:5px;background:#1f2937;border:1px solid var(--line);
+     color:#c9d7e6;border-radius:999px;padding:5px 12px;font-size:13.5px;margin-top:10px}
+.ledger{margin-top:16px;font-size:13.5px;color:var(--dim)}
+.ledger i{font-style:normal;display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);
+          text-align:center;line-height:15px;font-size:10px;margin-right:3px;vertical-align:-3px}
+.ledger i.ok{background:var(--know);border-color:var(--know);color:#052e14;font-weight:700}
+footer{flex:none;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg)}
+.btns{display:flex;gap:9px}
+button{flex:1;border:none;border-radius:14px;padding:15px 8px;font-size:17px;font-weight:700;color:#fff;
+       transition:transform .09s ease,filter .12s ease}
+button:active{transform:scale(.97);filter:brightness(1.15)}
+.b-know{background:var(--know);color:#04240f}
+.b-vague{background:var(--vague);color:#2c1b00}
+.b-forgot{background:var(--forgot);color:#2a0707}
+.b-next{background:#2563eb}
+.b-ghost{background:#1f2937;color:#c9d7e6}
+.done{text-align:center;padding-top:40px}
+.done .big{font-size:24px;font-weight:700}
+.done .sub{color:var(--dim);font-size:14px;margin-top:10px;line-height:1.7}
+.hint{color:#6b7280;font-size:11.5px;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="stats">
+    <span>池子 <b id="pool">–</b></span>
+    <span>今日 <b id="today">0</b>/<span id="target">100</span></span>
+    <span>已掌握 <b id="mastered">0</b></span>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+</header>
+
+<main id="stage"></main>
+
+<footer>
+  <div class="btns" id="btns"></div>
+  <div class="hint" id="hint"></div>
+</footer>
+
+<script src="words.js"></script>
+<script>
+(function(){
+'use strict';
+var W = window.WORDS || [];
+var KEY = 'vocab_v3';
+var TARGET = 100;
+
+var S = {day:'', today:[], round:[], ri:0, pass:{}, mastered:{}, phase:'ask', last:null, done:false};
+
+function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function load(){
+  try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); for(var k in o) S[k]=o[k]; } }catch(e){}
+  if(!S.pass) S.pass={}; if(!S.mastered) S.mastered={};
+  if(!S.today) S.today=[]; if(!S.round) S.round=[];
+  if(S.day!==todayStr()){ S.day=todayStr(); S.today=[]; S.round=[]; S.ri=0; S.phase='ask'; S.done=false; }
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+function pool(){ var a=[]; for(var i=0;i<W.length;i++) if(!S.mastered[i]) a.push(i); return a; }
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function masteredCount(){ var n=0; for(var k in S.mastered) if(S.mastered[k]) n++; return n; }
+function doneInToday(){ var n=0; for(var i=0;i<S.today.length;i++) if((S.pass[S.today[i]]||0)>=3) n++; return n; }
+
+function startBatch(){
+  var p = pool().filter(function(i){ return (S.pass[i]||0) < 3; });
+  shuffle(p);
+  S.today = p.slice(0, Math.min(TARGET, p.length));
+  S.round = shuffle(S.today.slice());
+  S.ri = 0; S.phase='ask'; S.done=false; S.last=null;
+  save();
+}
+function ensureBatch(){
+  if(!S.today.length){ startBatch(); return; }
+  var alive = S.today.filter(function(i){ return (S.pass[i]||0) < 3; });
+  if(!alive.length){ S.done=true; return; }
+  if(!S.round.length){ S.round = shuffle(alive); S.ri = 0; }
+}
+
+function speak(text, lang){
+  if(!('speechSynthesis' in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = lang || 'en-US'; u.rate = 0.92; u.pitch = 1;
+    var v = (window.speechSynthesis.getVoices()||[]).filter(function(x){ return (x.lang||'').indexOf(lang==='zh-CN'?'zh':'en')===0; })[0];
+    if(v) u.voice = v;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function curId(){ return S.round[S.ri]; }
+
+function answer(kind){
+  if(S.phase==='answer') return;
+  var id = curId(); if(id===undefined) return;
+  if(kind==='know'){ S.pass[id] = (S.pass[id]||0) + 1; }
+  else { S.pass[id] = 0; }
+  if((S.pass[id]||0) >= 3) S.mastered[id] = 1;
+  S.last = {id:id, kind:kind};
+  S.phase = 'answer';
+  save(); render();
+  var w = W[id];
+  setTimeout(function(){ speak(w[0]); }, 120);
+}
+
+function next(){
+  if(S.phase!=='answer') return;
+  S.phase='ask'; S.last=null; S.ri++;
+  if(S.ri >= S.round.length){ endRound(); }
+  save(); render();
+}
+function endRound(){
+  var alive = S.round.filter(function(i){ return (S.pass[i]||0) < 3; });
+  if(!alive.length){
+    var tAlive = S.today.filter(function(i){ return (S.pass[i]||0) < 3; });
+    if(!tAlive.length){ S.done = true; S.round=[]; S.ri=0; }
+    else { S.round = shuffle(tAlive); S.ri = 0; }
+  } else { S.round = shuffle(alive); S.ri = 0; }
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function splitPos(g){ var m=/^(n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\./.exec(g); return m? [m[1], g.slice(m[0].length)] : ['', g]; }
+function fmtGloss(g){
+  return String(g).replace(/([\u4e00-\u9fff；，、])((?:n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\.)/g, '$1 · $2');
+}
+
+function render(){
+  ensureBatch();
+  var P = W.length - masteredCount();
+  document.getElementById('pool').textContent = P;
+  document.getElementById('today').textContent = doneInToday();
+  document.getElementById('target').textContent = S.today.length || TARGET;
+  document.getElementById('mastered').textContent = masteredCount();
+  var pct = S.today.length ? (doneInToday()/S.today.length*100) : 0;
+  document.getElementById('bar').style.width = pct + '%';
+
+  var stage = document.getElementById('stage'), btns = document.getElementById('btns'), hint = document.getElementById('hint');
+
+  if(S.done || !S.today.length || curId()===undefined){
+    stage.innerHTML = '<div class="done"><div class="big">今天的 '+(S.today.length||TARGET)+' 个过完了 ✅</div>'+
+      '<div class="sub">池子还剩 '+P+' 个<br>明天打开会自动换一批</div></div>';
+    btns.innerHTML = '<button class="b-ghost" id="more">再学 '+(S.today.length||TARGET)+' 个</button>';
+    hint.textContent = '已掌握的不会再来';
+    document.getElementById('more').onclick = function(){ S.today=[]; S.round=[]; startBatch(); render(); };
+    return;
+  }
+
+  var id = curId(), w = W[id], pos = splitPos(w[1]);
+  var pass = S.pass[id]||0;
+  var head = '<div class="word'+(w[0].length>16?' small':'')+'">'+esc(w[0])+'</div>';
+
+  if(S.phase==='ask'){
+    stage.innerHTML = head +
+      '<div class="tip">先回想意思，再点下面三个键中的一个</div>' +
+      '<div class="ledger">已过 '+pass+' / 3 遍' +
+        [0,1,2].map(function(i){ return '<i class="'+(i<pass?'ok':'')+'">'+(i+1)+'</i>'; }).join('') +
+      '</div>';
+    btns.innerHTML = '<button class="b-know" data-k="know">认识</button>'+
+                     '<button class="b-vague" data-k="vague">模糊</button>'+
+                     '<button class="b-forgot" data-k="forgot">忘记了</button>';
+    hint.textContent = '想不起来就选「忘记了」，这个词会从第 1 遍重来';
+  } else {
+    var after = S.pass[id]||0;
+    var note = S.last && S.last.kind==='know'
+      ? (after>=3 ? '三遍过完，已掌握 ✅ 明天从池子划掉' : '第 '+after+' 遍过 ✅ 还差 '+(3-after)+' 遍')
+      : (after===0 ? '清零了，这个词从第 1 遍重来' : '第 '+after+' 遍');
+    stage.innerHTML = head +
+      '<div class="ans">'+
+        '<div class="def">'+(pos[0]?'<span class="poz">'+pos[0]+'</span>':'')+esc(fmtGloss(pos[1]))+'</div>'+
+        '<div class="ex"><span class="tag">'+(w[4]?'模板例句':'原文例句')+'</span>'+
+          '<div class="en">'+esc(w[2])+'</div>'+
+          '<div class="zh">'+esc(w[3])+'</div>'+
+          '<span class="spk" id="spk">🔊 读这句话</span>'+
+        '</div>'+
+        '<div class="ledger">'+note+'</div>'+
+      '</div>';
+    btns.innerHTML = '<button class="b-next" id="nx">下一个 →</button>';
+    hint.textContent = '点词再听一遍：长按上面的单词';
+    document.getElementById('nx').onclick = next;
+    document.getElementById('spk').onclick = function(){ speak(w[2]); };
+    stage.querySelector('.word').onclick = function(){ speak(w[0]); };
+  }
+
+  [].forEach.call(btns.querySelectorAll('button[data-k]'), function(b){
+    b.onclick = function(){ answer(b.getAttribute('data-k')); };
+  });
+}
+
+load();
+render();
+window.__app = { get S(){ return S; }, W:W, render:render, answer:answer, next:next, startBatch:startBatch, pool:pool };
+window.addEventListener('pageshow', function(e){ if(e.persisted){ load(); render(); } });
+})();
+</script>
+</body>
+</html>
