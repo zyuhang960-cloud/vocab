@@ -22,6 +22,7 @@ header{flex:none;padding:10px 14px 6px;border-bottom:1px solid var(--line)}
 main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px 12px}
 .word{font-size:40px;font-weight:700;line-height:1.2;word-break:break-word}
 .word.small{font-size:30px}
+.spk-w{font-size:18px;margin-left:8px;opacity:.55;vertical-align:6px}
 .tip{color:var(--dim);font-size:13.5px;margin-top:10px}
 .ans{margin-top:18px;animation:fade .18s ease}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -109,16 +110,29 @@ function ensureBatch(){
   if(!S.round.length){ S.round = shuffle(alive); S.ri = 0; }
 }
 
-function speak(text, lang){
+function tts(text, lang){
   if(!('speechSynthesis' in window)) return;
   try{
     window.speechSynthesis.cancel();
     var u = new SpeechSynthesisUtterance(text);
-    u.lang = lang || 'en-US'; u.rate = 0.92; u.pitch = 1;
-    var v = (window.speechSynthesis.getVoices()||[]).filter(function(x){ return (x.lang||'').indexOf(lang==='zh-CN'?'zh':'en')===0; })[0];
-    if(v) u.voice = v;
+    u.lang = lang || 'en-US'; u.rate = 0.92;
     window.speechSynthesis.speak(u);
   }catch(e){}
+}
+function playUrl(url, fallback){
+  try{
+    var a = new Audio(url);
+    a.preload = 'auto';
+    a.onerror = function(){ tts(fallback); };
+    var pr = a.play();
+    if(pr && pr.catch) pr.catch(function(){ tts(fallback); });
+  }catch(e){ tts(fallback); }
+}
+function speakWord(w){
+  playUrl('https://dict.youdao.com/dictvoice?type=2&audio=' + encodeURIComponent(w), w);
+}
+function speakSent(t){
+  playUrl('https://fanyi.baidu.com/gettts?lan=en&text=' + encodeURIComponent(t) + '&spd=3&source=web', t);
 }
 
 function curId(){ return S.round[S.ri]; }
@@ -133,7 +147,7 @@ function answer(kind){
   S.phase = 'answer';
   save(); render();
   var w = W[id];
-  setTimeout(function(){ speak(w[0]); }, 120);
+  speakWord(w[0]);
 }
 
 function next(){
@@ -180,7 +194,7 @@ function render(){
 
   var id = curId(), w = W[id], pos = splitPos(w[1]);
   var pass = S.pass[id]||0;
-  var head = '<div class="word'+(w[0].length>16?' small':'')+'">'+esc(w[0])+'</div>';
+  var head = '<div class="word'+(w[0].length>16?' small':'')+'">'+esc(w[0])+'<span class="spk-w">🔊</span></div>';
 
   if(S.phase==='ask'){
     stage.innerHTML = head +
@@ -208,10 +222,10 @@ function render(){
         '<div class="ledger">'+note+'</div>'+
       '</div>';
     btns.innerHTML = '<button class="b-next" id="nx">下一个 →</button>';
-    hint.textContent = '点词再听一遍：长按上面的单词';
+    hint.textContent = '点上面的单词可以再听一遍';
     document.getElementById('nx').onclick = next;
-    document.getElementById('spk').onclick = function(){ speak(w[2]); };
-    stage.querySelector('.word').onclick = function(){ speak(w[0]); };
+    document.getElementById('spk').onclick = function(){ speakSent(w[2]); };
+    stage.querySelector('.word').onclick = function(){ speakWord(w[0]); };
   }
 
   [].forEach.call(btns.querySelectorAll('button[data-k]'), function(b){
