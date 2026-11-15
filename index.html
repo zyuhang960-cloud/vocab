@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0d1117">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>背单词</title>
 <style>
 :root{--bg:#0d1117;--card:#161b22;--line:#242c38;--fg:#e6edf3;--dim:#8b949e;
@@ -15,34 +14,33 @@ html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--fg);font:16px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
      display:flex;flex-direction:column;overflow:hidden}
 .tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
-.tabs a{flex:1;text-align:center;padding:11px 0;color:var(--dim);text-decoration:none;font-size:14.5px;font-weight:600}
+.tabs a{flex:1;text-align:center;padding:10px 0;color:var(--dim);text-decoration:none;font-size:14.5px;font-weight:600}
 .tabs a.on{color:#7dd3fc;box-shadow:inset 0 -2px 0 #7dd3fc}
 header{flex:none;padding:8px 14px 6px;border-bottom:1px solid var(--line)}
-.stats{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim)}
+.stats{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);white-space:nowrap}
 .stats b{color:#7dd3fc;font-size:14px}
-.bar{height:4px;background:#1c2330;border-radius:3px;overflow:hidden;margin-top:8px}
+.bar{height:4px;background:#1c2330;border-radius:3px;overflow:hidden;margin-top:7px}
 .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#38bdf8);transition:width .3s}
 main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px 12px}
 .word{font-size:40px;font-weight:700;line-height:1.2;word-break:break-word}
 .word.small{font-size:30px}
-.spk-w{font-size:18px;margin-left:8px;opacity:.55;vertical-align:6px}
+.spk-w{font-size:18px;margin-left:8px;opacity:.5;vertical-align:6px}
 .tip{color:var(--dim);font-size:13.5px;margin-top:10px}
 .ans{margin-top:18px;animation:fade .18s ease}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .poz{display:inline-block;font-size:12.5px;color:#0d1117;background:#7dd3fc;border-radius:6px;padding:1px 7px;margin-right:6px;vertical-align:2px;font-weight:700}
-.def{font-size:26px;font-weight:650;line-height:1.45;margin-top:8px}
-.ex{margin-top:18px;padding:13px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.def{font-size:25px;font-weight:650;line-height:1.45;margin-top:8px}
+.ex{margin-top:16px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px}
 .ex .en{font-size:16px;line-height:1.65}
 .ex .zh{font-size:14px;color:var(--dim);margin-top:8px;line-height:1.6}
 .ex .tag{float:right;font-size:11px;color:#8b949e;border:1px solid var(--line);border-radius:6px;padding:0 5px}
-.spk{display:inline-flex;align-items:center;gap:5px;background:#1f2937;border:1px solid var(--line);
-     color:#c9d7e6;border-radius:999px;padding:5px 12px;font-size:13.5px;margin-top:10px}
-.ledger{margin-top:16px;font-size:13.5px;color:var(--dim)}
+.ledger{margin-top:14px;font-size:13.5px;color:var(--dim)}
 .ledger i{font-style:normal;display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid var(--line);
           text-align:center;line-height:15px;font-size:10px;margin-right:3px;vertical-align:-3px}
 .ledger i.ok{background:var(--know);border-color:var(--know);color:#052e14;font-weight:700}
-footer{flex:none;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg)}
+footer{flex:none;padding:9px 12px calc(9px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg)}
 .btns{display:flex;gap:9px}
+.btns.col{flex-direction:column}
 button{flex:1;border:none;border-radius:14px;padding:15px 8px;font-size:17px;font-weight:700;color:#fff;
        transition:transform .09s ease,filter .12s ease}
 button:active{transform:scale(.97);filter:brightness(1.15)}
@@ -50,196 +48,202 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
 .b-vague{background:var(--vague);color:#2c1b00}
 .b-forgot{background:var(--forgot);color:#2a0707}
 .b-next{background:#2563eb}
-.b-ghost{background:#1f2937;color:#c9d7e6}
-.done{text-align:center;padding-top:40px}
-.done .big{font-size:24px;font-weight:700}
-.done .sub{color:var(--dim);font-size:14px;margin-top:10px;line-height:1.7}
-.hint{color:#6b7280;font-size:11.5px;text-align:center;margin-top:8px}
+.b-wrong{background:#374151;color:#fca5a5}
+.done{text-align:center;padding-top:30px}
+.done .big{font-size:23px;font-weight:700}
+.done .sub{color:var(--dim);font-size:14px;margin-top:10px;line-height:1.8}
+.hint{color:#6b7280;font-size:11.5px;text-align:center;margin-top:7px}
 </style>
 </head>
 <body>
 <div class="tabs"><a href="./" class="on">背单词</a><a href="syn.html">同义替换</a><a href="sent.html">长难句</a></div>
 <header>
   <div class="stats">
-    <span>池子 <b id="pool">–</b></span>
-    <span>今日 <b id="today">0</b>/<span id="target">100</span></span>
-    <span>已掌握 <b id="mastered">0</b></span>
+    <span>今日 <b id="gdone">0</b> 组</span>
+    <span>组内 <b id="gin">0</b>/<b id="gtot">30</b></span>
+    <span>待复习 <b id="due">0</b></span>
+    <span>未学 <b id="pool">0</b></span>
   </div>
   <div class="bar"><i id="bar"></i></div>
 </header>
-
 <main id="stage"></main>
-
 <footer>
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-
-<script src="words.js?v=20261114d"></script>
+<script src="words.js?v=20261114e"></script>
 <script>
 (function(){
 'use strict';
 var W = window.WORDS || [];
-var KEY = 'vocab_v3';
-var TARGET = 100;
+var KEY = 'vocab_v4';
+var GROUP = 30;
+var GAP = [2,4,7,11];           /* 学完一轮后隔几天再来：2/4/7/11，累计 24 天 */
+var STAGE_MAX = GAP.length + 1; /* 走满 5 轮毕业 */
 
-var S = {day:'', today:[], round:[], ri:0, pass:{}, mastered:{}, phase:'ask', last:null, done:false};
+var S = { day:0, groupsDay:0, st:{}, p:{}, due:{}, pending:[], mode:'new', phase:'ask', last:null };
 
-function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-function load(){
-  try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); for(var k in o) S[k]=o[k]; } }catch(e){}
-  if(!S.pass) S.pass={}; if(!S.mastered) S.mastered={};
-  if(!S.today) S.today=[]; if(!S.round) S.round=[];
-  if(S.day!==todayStr()){ S.day=todayStr(); S.today=[]; S.round=[]; S.ri=0; S.phase='ask'; S.done=false; }
-}
+function todayNum(){ var d=new Date(); return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
-
-function pool(){ var a=[]; for(var i=0;i<W.length;i++) if(!S.mastered[i]) a.push(i); return a; }
-function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
-function masteredCount(){ var n=0; for(var k in S.mastered) if(S.mastered[k]) n++; return n; }
-function doneInToday(){ var n=0; for(var i=0;i<S.today.length;i++) if((S.pass[S.today[i]]||0)>=3) n++; return n; }
-
-function startBatch(){
-  var p = pool().filter(function(i){ return (S.pass[i]||0) < 3; });
-  shuffle(p);
-  S.today = p.slice(0, Math.min(TARGET, p.length));
-  S.round = shuffle(S.today.slice());
-  S.ri = 0; S.phase='ask'; S.done=false; S.last=null;
-  save();
+function migrate(){
+  /* 从旧的 100 词三键版迁移：已掌握→毕业，已过 1-2 遍→保留遍数 */
+  try{
+    var old=JSON.parse(localStorage.getItem('vocab_v3')||'null'); if(!old) return false;
+    if(old.mastered) for(var k in old.mastered) if(old.mastered[k]) S.st[+k]=STAGE_MAX;
+    /* 旧版的 pass 是「当日批次」的遍数，换组即清零，不再迁移 */
+    return true;
+  }catch(e){ return false; }
 }
-function ensureBatch(){
-  if(!S.today.length){ startBatch(); return; }
-  var alive = S.today.filter(function(i){ return (S.pass[i]||0) < 3; });
-  if(!alive.length){ S.done=true; return; }
-  if(!S.round.length){ S.round = shuffle(alive); S.ri = 0; }
+function load(){
+  var had=false;
+  try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); for(var k in o) S[k]=o[k]; had=true; } }catch(e){}
+  if(!S.st) S.st={}; if(!S.p) S.p={}; if(!S.due) S.due={}; if(!S.pending) S.pending=[];
+  if(!had) migrate();
+  var t=todayNum();
+  if(S.day!==t){ S.day=t; S.groupsDay=0; }
 }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function splitPos(g){ var m=/^(n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\./.exec(g); return m?[m[1],g.slice(m[0].length)]:['',g]; }
+function fmtGloss(g){ return String(g).replace(/([\u4e00-\u9fff；，、])((?:n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\.)/g,'$1 · $2'); }
 
-function tts(text, lang){
+/* ---------- 发音：只读单词，放完释放音频焦点 ---------- */
+var AUD=null;
+function playWord(w){
+  try{
+    if(AUD){ try{ AUD.pause(); }catch(e){} AUD=null; }
+    var a=new Audio('https://dict.youdao.com/dictvoice?type=2&audio='+encodeURIComponent(w));
+    a.preload='auto';
+    a.onended=function(){ try{ a.pause(); a.removeAttribute('src'); a.load(); }catch(e){} if(AUD===a) AUD=null; };
+    a.onerror=function(){ tts(w); };
+    AUD=a;
+    var pr=a.play(); if(pr&&pr.catch) pr.catch(function(){ tts(w); });
+  }catch(e){ tts(w); }
+}
+function tts(t){
   if(!('speechSynthesis' in window)) return;
-  try{
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = lang || 'en-US'; u.rate = 0.92;
-    window.speechSynthesis.speak(u);
-  }catch(e){}
-}
-function playUrl(url, fallback){
-  try{
-    var a = new Audio(url);
-    a.preload = 'auto';
-    a.onerror = function(){ tts(fallback); };
-    var pr = a.play();
-    if(pr && pr.catch) pr.catch(function(){ tts(fallback); });
-  }catch(e){ tts(fallback); }
-}
-function speakWord(w){
-  playUrl('https://dict.youdao.com/dictvoice?type=2&audio=' + encodeURIComponent(w), w);
-}
-function speakSent(t){
-  playUrl('https://fanyi.baidu.com/gettts?lan=en&text=' + encodeURIComponent(t) + '&spd=3&source=web', t);
+  try{ window.speechSynthesis.cancel(); var u=new SpeechSynthesisUtterance(t); u.lang='en-US'; u.rate=.92; window.speechSynthesis.speak(u); }catch(e){}
 }
 
-function curId(){ return S.round[S.ri]; }
-
-function answer(kind){
-  if(S.phase==='answer') return;
-  var id = curId(); if(id===undefined) return;
-  if(kind==='know'){ S.pass[id] = (S.pass[id]||0) + 1; }
-  else { S.pass[id] = 0; }
-  if((S.pass[id]||0) >= 3) S.mastered[id] = 1;
-  S.last = {id:id, kind:kind};
-  S.phase = 'answer';
-  save(); render();
-  var w = W[id];
-  speakWord(w[0]);
+/* ---------- 词池 ---------- */
+function dueList(t){
+  var a=[];
+  for(var k in S.st){ var i=+k; if(S.st[i]>=1 && S.st[i]<STAGE_MAX && (S.due[i]||0)<=t) a.push(i); }
+  a.sort(function(x,y){ return (S.due[x]||0)-(S.due[y]||0); });
+  return a;
 }
+function newList(){ var a=[]; for(var i=0;i<W.length;i++) if(!S.st[i]) a.push(i); return a; }
 
-function next(){
-  if(S.phase!=='answer') return;
-  S.phase='ask'; S.last=null; S.ri++;
-  if(S.ri >= S.round.length){ endRound(); }
+/* ---------- 组 ---------- */
+function startGroup(){
+  var t=todayNum(), due=dueList(t), src, mode;
+  if(due.length){ src=due.slice(0,GROUP); mode='review'; }
+  else { src=newList().slice(0,GROUP); mode='new'; }
+  S.pending=src.slice(); S.mode=mode; S.phase=src.length?'ask':'empty'; S.last=null;
+  for(var i=0;i<S.pending.length;i++) S.p[i]=0;
   save(); render();
 }
-function endRound(){
-  var alive = S.round.filter(function(i){ return (S.pass[i]||0) < 3; });
-  if(!alive.length){
-    var tAlive = S.today.filter(function(i){ return (S.pass[i]||0) < 3; });
-    if(!tAlive.length){ S.done = true; S.round=[]; S.ri=0; }
-    else { S.round = shuffle(tAlive); S.ri = 0; }
-  } else { S.round = shuffle(alive); S.ri = 0; }
+
+function advance(wrong){
+  if(!S.pending.length){ startGroup(); return; }
+  var id=S.pending[0];
+  var kind = wrong ? 'wrong' : (S.last?S.last.kind:'know');
+  var t=todayNum();
+
+  if(kind==='know'){
+    S.p[id]=(S.p[id]||0)+1;
+    if(S.p[id]>=3){
+      var st=(S.st[id]||0);
+      if(st===0){ S.st[id]=1; S.due[id]=t+GAP[0]; }
+      else {
+        st=st+1;
+        if(st>=STAGE_MAX){ S.st[id]=STAGE_MAX; }
+        else { S.st[id]=st; S.due[id]=t+GAP[st-1]; }
+      }
+      S.pending.shift(); S.p[id]=0;
+    } else {
+      S.pending.push(S.pending.shift());
+    }
+  } else {
+    S.p[id]=0;
+    S.pending.push(S.pending.shift());
+  }
+  S.phase='ask'; S.last=null;
+  if(!S.pending.length){ S.groupsDay=(S.groupsDay||0)+1; S.phase='groupDone'; }
+  save(); render();
 }
 
-function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function splitPos(g){ var m=/^(n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\./.exec(g); return m? [m[1], g.slice(m[0].length)] : ['', g]; }
-function fmtGloss(g){
-  return String(g).replace(/([\u4e00-\u9fff；，、])((?:n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\.)/g, '$1 · $2');
-}
-
+/* ---------- 渲染 ---------- */
 function render(){
-  ensureBatch();
-  var P = W.length - masteredCount();
-  document.getElementById('pool').textContent = P;
-  document.getElementById('today').textContent = doneInToday();
-  document.getElementById('target').textContent = S.today.length || TARGET;
-  document.getElementById('mastered').textContent = masteredCount();
-  var pct = S.today.length ? (doneInToday()/S.today.length*100) : 0;
-  document.getElementById('bar').style.width = pct + '%';
+  var t=todayNum();
+  document.getElementById('gdone').textContent=S.groupsDay||0;
+  document.getElementById('due').textContent=dueList(t).length;
+  document.getElementById('pool').textContent=newList().length;
 
-  var stage = document.getElementById('stage'), btns = document.getElementById('btns'), hint = document.getElementById('hint');
+  var stage=document.getElementById('stage'), btns=document.getElementById('btns'), hint=document.getElementById('hint');
+  var gtot=document.getElementById('gtot'), gin=document.getElementById('gin');
 
-  if(S.done || !S.today.length || curId()===undefined){
-    stage.innerHTML = '<div class="done"><div class="big">今天的 '+(S.today.length||TARGET)+' 个过完了 ✅</div>'+
-      '<div class="sub">池子还剩 '+P+' 个<br>明天打开会自动换一批</div></div>';
-    btns.innerHTML = '<button class="b-ghost" id="more">再学 '+(S.today.length||TARGET)+' 个</button>';
-    hint.textContent = '已掌握的不会再来';
-    document.getElementById('more').onclick = function(){ S.today=[]; S.round=[]; startBatch(); render(); };
+  if(S.phase==='empty'){
+    gtot.textContent='0'; gin.textContent='0';
+    document.getElementById('bar').style.width='0%';
+    stage.innerHTML='<div class="done"><div class="big">🎉 全部学完了</div><div class="sub">池子空了，等新词进来</div></div>';
+    btns.innerHTML=''; hint.textContent=''; return;
+  }
+  if(S.phase==='groupDone'){
+    gtot.textContent='0'; gin.textContent='0';
+    document.getElementById('bar').style.width='100%';
+    stage.innerHTML='<div class="done"><div class="big">本组过完了 ✅</div>'+
+      '<div class="sub">今天已完成 <b>'+(S.groupsDay||0)+'</b> 组<br>待复习 '+dueList(t).length+' 个 · 未学 '+newList().length+' 个</div></div>';
+    btns.className='btns';
+    btns.innerHTML='<button class="b-next" id="nb">下一组 →</button>';
+    hint.textContent='累了就停，明天会接着排';
+    document.getElementById('nb').onclick=function(){ startGroup(); };
     return;
   }
 
-  var id = curId(), w = W[id], pos = splitPos(w[1]);
-  var pass = S.pass[id]||0;
-  var head = '<div class="word'+(w[0].length>16?' small':'')+'">'+esc(w[0])+'<span class="spk-w">🔊</span></div>';
+  var id=S.pending[0], w=W[id], pos=splitPos(w[1]), pass=S.p[id]||0;
+  var left=S.pending.length;
+  gtot.textContent=left; gin.textContent=0;
+  document.getElementById('bar').style.width=((1-left/GROUP)*100).toFixed(1)+'%';
+
+  var head='<div class="word'+(w[0].length>16?' small':'')+'">'+esc(w[0])+'<span class="spk-w">🔊</span></div>';
 
   if(S.phase==='ask'){
-    stage.innerHTML = head +
-      '<div class="tip">先回想意思，再点下面三个键中的一个</div>' +
-      '<div class="ledger">已过 '+pass+' / 3 遍' +
-        [0,1,2].map(function(i){ return '<i class="'+(i<pass?'ok':'')+'">'+(i+1)+'</i>'; }).join('') +
-      '</div>';
-    btns.innerHTML = '<button class="b-know" data-k="know">认识</button>'+
-                     '<button class="b-vague" data-k="vague">模糊</button>'+
-                     '<button class="b-forgot" data-k="forgot">忘记了</button>';
-    hint.textContent = '想不起来就选「忘记了」，这个词会从第 1 遍重来';
+    stage.innerHTML=head+
+      '<div class="tip">'+(S.mode==='new'?'新词':'复习')+' · 本组还剩 '+left+' 个</div>'+
+      '<div class="ledger">已过 '+pass+' / 3 遍 '+[0,1,2].map(function(i){return '<i class="'+(i<pass?'ok':'')+'">'+(i+1)+'</i>';}).join('')+'</div>';
+    btns.className='btns';
+    btns.innerHTML='<button class="b-know" data-k="know">认识</button>'+
+                   '<button class="b-vague" data-k="vague">模糊</button>'+
+                   '<button class="b-forgot" data-k="forgot">忘记了</button>';
+    hint.textContent='想不起来就点「忘记了」，这个词从第 1 遍重来';
+    [].forEach.call(btns.querySelectorAll('button[data-k]'),function(b){
+      b.onclick=function(){ S.last={id:id,kind:b.getAttribute('data-k')}; S.phase='answer'; save(); render(); playWord(w[0]); };
+    });
   } else {
-    var after = S.pass[id]||0;
     var note = S.last && S.last.kind==='know'
-      ? (after>=3 ? '三遍过完，已掌握 ✅ 明天从池子划掉' : '第 '+after+' 遍过 ✅ 还差 '+(3-after)+' 遍')
-      : (after===0 ? '清零了，这个词从第 1 遍重来' : '第 '+after+' 遍');
-    stage.innerHTML = head +
+      ? (pass+1>=3 ? '这一遍算完，满 3 遍 ✅' : '这一遍算第 '+(pass+1)+' 遍，还差 '+(3-pass-1)+' 遍')
+      : '这一遍不算，从第 1 遍重来';
+    stage.innerHTML=head+
       '<div class="ans">'+
         '<div class="def">'+(pos[0]?'<span class="poz">'+pos[0]+'</span>':'')+esc(fmtGloss(pos[1]))+'</div>'+
         '<div class="ex"><span class="tag">'+(w[4]?'模板例句':'原文例句')+'</span>'+
-          '<div class="en">'+esc(w[2])+'</div>'+
-          '<div class="zh">'+esc(w[3])+'</div>'+
-          '<span class="spk" id="spk">🔊 读这句话</span>'+
-        '</div>'+
+          '<div class="en">'+esc(w[2])+'</div><div class="zh">'+esc(w[3])+'</div></div>'+
         '<div class="ledger">'+note+'</div>'+
       '</div>';
-    btns.innerHTML = '<button class="b-next" id="nx">下一个 →</button>';
-    hint.textContent = '点上面的单词可以再听一遍';
-    document.getElementById('nx').onclick = next;
-    document.getElementById('spk').onclick = function(){ speakSent(w[2]); };
-    stage.querySelector('.word').onclick = function(){ speakWord(w[0]); };
+    btns.className='btns col';
+    btns.innerHTML='<button class="b-next" id="nx">下一个 →</button>'+
+                   '<button class="b-wrong" id="wrong">记错了，重来</button>';
+    hint.textContent='点单词可以再听一遍';
+    document.getElementById('nx').onclick=function(){ advance(false); };
+    document.getElementById('wrong').onclick=function(){ advance(true); };
+    stage.querySelector('.word').onclick=function(){ playWord(w[0]); };
   }
-
-  [].forEach.call(btns.querySelectorAll('button[data-k]'), function(b){
-    b.onclick = function(){ answer(b.getAttribute('data-k')); };
-  });
 }
 
 load();
-render();
-window.__app = { get S(){ return S; }, W:W, render:render, answer:answer, next:next, startBatch:startBatch, pool:pool };
+if(!S.pending.length && S.phase!=='groupDone') startGroup(); else render();
+window.__app={ get S(){return S;}, W:W, render:render, advance:advance, startGroup:startGroup,
+               dueList:dueList, newList:newList, GAP:GAP, STAGE_MAX:STAGE_MAX };
 window.addEventListener('pageshow', function(e){ if(e.persisted){ load(); render(); } });
 })();
 </script>
