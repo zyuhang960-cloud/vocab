@@ -72,7 +72,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261114e"></script>
+<script src="words.js?v=20261114f"></script>
 <script>
 (function(){
 'use strict';
@@ -234,8 +234,9 @@ function render(){
     stage.innerHTML=head+
       '<div class="ans">'+
         '<div class="def">'+(pos[0]?'<span class="poz">'+pos[0]+'</span>':'')+esc(fmtGloss(pos[1]))+'</div>'+
-        '<div class="ex"><span class="tag">'+(w[4]?'模板例句':'原文例句')+'</span>'+
-          '<div class="en">'+esc(w[2])+'</div><div class="zh">'+esc(w[3])+'</div></div>'+
+        (w[4] ? '' :
+        '<div class="ex"><span class="tag">例句</span>'+
+          '<div class="en">'+esc(w[2])+'</div><div class="zh">'+esc(w[3])+'</div></div>')+
         '<div class="ledger">'+note+'</div>'+
       '</div>';
     var wasKnow = S.last && S.last.kind==='know';
