@@ -63,7 +63,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
     <span>今日 <b id="gdone">0</b> 组</span>
     <span>组内 <b id="gin">0</b>/<b id="gtot">30</b></span>
     <span>待复习 <b id="due">0</b></span>
-    <span>未学 <b id="pool">0</b></span>
+    <span>新词 <b id="newc">0</b>/<b id="newcap">120</b></span>
   </div>
   <div class="bar"><i id="bar"></i></div>
 </header>
@@ -72,17 +72,18 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261115b"></script>
+<script src="words.js?v=20261115c"></script>
 <script>
 (function(){
 'use strict';
 var W = window.WORDS || [];
 var KEY = 'vocab_v4';
 var GROUP = 30;
-var GAP = [1,2,4,7];            /* 学完一轮后隔几天再来：1/2/4/7，累计 14 天毕业（参考不背单词） */
+var GAP = [1,2,4,7];            /* 1/2/4/7，累计 14 天毕业 */
+var NEW_CAP = 120;              /* 每天新词上限（100-150 之间取中） */
 var STAGE_MAX = GAP.length + 1; /* 走满 5 轮毕业 */
 
-var S = { day:0, groupsDay:0, st:{}, p:{}, due:{}, pending:[], gsize:0, mode:'new', phase:'ask', last:null };
+var S = { day:0, groupsDay:0, newCount:0, st:{}, p:{}, due:{}, pending:[], gsize:0, mode:'new', phase:'ask', last:null };
 
 function todayNum(){ var d=new Date(); return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -101,7 +102,7 @@ function load(){
   if(!S.st) S.st={}; if(!S.p) S.p={}; if(!S.due) S.due={}; if(!S.pending) S.pending=[];
   if(!had) migrate();
   var t=todayNum();
-  if(S.day!==t){ S.day=t; S.groupsDay=0; }
+  if(S.day!==t){ S.day=t; S.groupsDay=0; S.newCount=0; }
 }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function splitPos(g){ var m=/^(n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\./.exec(g); return m?[m[1],g.slice(m[0].length)]:['',g]; }
@@ -140,14 +141,16 @@ function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random
 function startGroup(){
   var t=todayNum(), due=dueList(t), nw=newList(), src=[];
   /* 每组固定配比：复习最多 24 个，其余位子给新词（新词随机抽） */
-  var pickRev = due.slice(0, 24);
-  var room = GROUP - pickRev.length;
-  var pickNew = shuffle(nw.slice()).slice(0, room);
-  src = pickRev.concat(pickNew);
-  shuffle(src);
+  if(due.length){
+    src = due.slice(0, GROUP); S.mode='review';
+  } else {
+    var quota = NEW_CAP - (S.newCount||0);
+    if(quota <= 0){ S.pending=[]; S.gsize=0; S.mode='new'; S.phase='quota'; save(); render(); return; }
+    src = shuffle(nw.slice()).slice(0, Math.min(GROUP, quota)); S.mode='new';
+  }
   S.pending=src; S.gsize=src.length;
-  S.grev=pickRev.length; S.gnew=pickNew.length;
-  S.mode = pickRev.length && pickNew.length ? 'mix' : (pickRev.length ? 'review' : 'new');
+  S.grev = S.mode==='review' ? src.length : 0;
+  S.gnew = S.mode==='new' ? src.length : 0;
   S.phase=src.length?'ask':'empty'; S.last=null;
   save(); render();
 }
@@ -171,7 +174,7 @@ function advance(mode){
     S.p[id]=(S.p[id]||0)+1;
     if(S.p[id]>=3){
       var st=(S.st[id]||0);
-      if(st===0){ S.st[id]=1; S.due[id]=t+GAP[0]; }
+      if(st===0){ S.st[id]=1; S.due[id]=t+GAP[0]; S.newCount=(S.newCount||0)+1; }
       else {
         st=st+1;
         if(st>=STAGE_MAX){ S.st[id]=STAGE_MAX; }
@@ -195,7 +198,8 @@ function render(){
   var t=todayNum();
   document.getElementById('gdone').textContent=S.groupsDay||0;
   document.getElementById('due').textContent=dueList(t).length;
-  document.getElementById('pool').textContent=newList().length;
+  document.getElementById('newc').textContent=S.newCount||0;
+  document.getElementById('newcap').textContent=NEW_CAP;
 
   var stage=document.getElementById('stage'), btns=document.getElementById('btns'), hint=document.getElementById('hint');
   var gtot=document.getElementById('gtot'), gin=document.getElementById('gin');
@@ -206,11 +210,21 @@ function render(){
     stage.innerHTML='<div class="done"><div class="big">🎉 全部学完了</div><div class="sub">池子空了，等新词进来</div></div>';
     btns.innerHTML=''; hint.textContent=''; return;
   }
+  if(S.phase==='quota'){
+    gtot.textContent='0'; gin.textContent='0';
+    stage.innerHTML='<div class="done"><div class="big">今天的 '+NEW_CAP+' 个新词学完了 ✅</div>'+
+      '<div class="sub">待复习 '+dueList(t).length+' 个 · 未学 '+newList().length+' 个<br>复习清完会再给你新词</div></div>';
+    btns.className='btns';
+    btns.innerHTML='<button class="b-next" id="nb">看看还有没有复习</button>';
+    document.getElementById('nb').onclick=function(){ startGroup(); };
+    hint.textContent='';
+    return;
+  }
   if(S.phase==='groupDone'){
     gtot.textContent='0'; gin.textContent='0';
     document.getElementById('bar').style.width='100%';
     stage.innerHTML='<div class="done"><div class="big">本组过完了 ✅</div>'+
-      '<div class="sub">今天已完成 <b>'+(S.groupsDay||0)+'</b> 组<br>待复习 '+dueList(t).length+' 个 · 未学 '+newList().length+' 个</div></div>';
+      '<div class="sub">今天已完成 <b>'+(S.groupsDay||0)+'</b> 组<br>复习 '+(S.grev||0)+' 个 · 新词 '+(S.newCount||0)+'/'+NEW_CAP+'<br>待复习 '+dueList(t).length+' 个 · 未学 '+newList().length+' 个</div></div>';
     btns.className='btns';
     btns.innerHTML='<button class="b-next" id="nb">下一组 →</button>';
     hint.textContent='累了就停，明天会接着排';
