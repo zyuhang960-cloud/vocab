@@ -72,7 +72,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261114f"></script>
+<script src="words.js?v=20261114g"></script>
 <script>
 (function(){
 'use strict';
@@ -109,6 +109,7 @@ function fmtGloss(g){ return String(g).replace(/([\u4e00-\u9fff；，、])((?:n|
 
 /* ---------- 发音：只读单词，放完释放音频焦点 ---------- */
 var AUD=null;
+var AUTO=null;
 function playWord(w){
   try{
     if(AUD){ try{ AUD.pause(); }catch(e){} AUD=null; }
@@ -150,6 +151,7 @@ function requeue(){
   S.pending.splice(at,0,id);
 }
 function advance(mode){
+  clearTimeout(AUTO);
   if(!S.pending.length){ startGroup(); return; }
   var id=S.pending[0];
   var kind = (mode==='wrong') ? 'wrong'
@@ -244,9 +246,15 @@ function render(){
     btns.innerHTML='<button class="b-next" id="nx">下一个 →</button>'+
       (wasKnow ? '<button class="b-wrong" id="alt">记错了，重来</button>'
                : '<button class="b-right" id="alt">记对了（改成认识）</button>');
-    hint.textContent='点单词可以再听一遍';
-    document.getElementById('nx').onclick=function(){ advance(); };
-    document.getElementById('alt').onclick=function(){ advance(wasKnow?'wrong':'right'); };
+    hint.textContent='2.5 秒后自动下一个 · 点一下卡片可暂停'
+    clearTimeout(AUTO);
+    AUTO=setTimeout(function(){ if(S.phase==='answer') advance(); }, 2500);
+    document.getElementById('nx').onclick=function(){ clearTimeout(AUTO); advance(); };
+    document.getElementById('alt').onclick=function(){ clearTimeout(AUTO); advance(wasKnow?'wrong':'right'); };
+    document.getElementById('stage').onclick=function(e){
+      clearTimeout(AUTO);
+      if(e.target && e.target.className && String(e.target.className).indexOf('word')===0) playWord(w[0]);
+    };
     stage.querySelector('.word').onclick=function(){ playWord(w[0]); };
   }
 }
