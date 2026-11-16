@@ -72,7 +72,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261114g"></script>
+<script src="words.js?v=20261114h"></script>
 <script>
 (function(){
 'use strict';
@@ -129,18 +129,26 @@ function tts(t){
 /* ---------- 词池 ---------- */
 function dueList(t){
   var a=[];
-  for(var k in S.st){ var i=+k; if(S.st[i]>=1 && S.st[i]<STAGE_MAX && (S.due[i]||0)<=t) a.push(i); }
+  for(var k in S.st){ var i=+k; if(S.st[i]>=1 && S.st[i]<STAGE_MAX && S.due[i]!==undefined && S.due[i]<=t) a.push(i); }
   a.sort(function(x,y){ return (S.due[x]||0)-(S.due[y]||0); });
   return a;
 }
 function newList(){ var a=[]; for(var i=0;i<W.length;i++) if(!S.st[i]) a.push(i); return a; }
 
 /* ---------- 组 ---------- */
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function startGroup(){
-  var t=todayNum(), due=dueList(t), src, mode;
-  if(due.length){ src=due.slice(0,GROUP); mode='review'; }
-  else { src=newList().slice(0,GROUP); mode='new'; }
-  S.pending=src.slice(); S.gsize=src.length; S.mode=mode; S.phase=src.length?'ask':'empty'; S.last=null;
+  var t=todayNum(), due=dueList(t), nw=newList(), src=[];
+  /* 每组固定配比：复习最多 24 个，其余位子给新词（新词随机抽） */
+  var pickRev = due.slice(0, 24);
+  var room = GROUP - pickRev.length;
+  var pickNew = shuffle(nw.slice()).slice(0, room);
+  src = pickRev.concat(pickNew);
+  shuffle(src);
+  S.pending=src; S.gsize=src.length;
+  S.grev=pickRev.length; S.gnew=pickNew.length;
+  S.mode = pickRev.length && pickNew.length ? 'mix' : (pickRev.length ? 'review' : 'new');
+  S.phase=src.length?'ask':'empty'; S.last=null;
   save(); render();
 }
 
@@ -219,7 +227,7 @@ function render(){
 
   if(S.phase==='ask'){
     stage.innerHTML=head+
-      '<div class="tip">'+(S.mode==='new'?'新词':'复习')+' · 本组还剩 '+left+' 个</div>'+
+      '<div class="tip">'+(S.mode==='mix'?('复习 '+(S.grev||0)+' · 新词 '+(S.gnew||0)):(S.mode==='new'?'新词':'复习'))+' · 本组还剩 '+left+' 个</div>'+
       '<div class="ledger">已过 '+pass+' / 3 遍 '+[0,1,2].map(function(i){return '<i class="'+(i<pass?'ok':'')+'">'+(i+1)+'</i>';}).join('')+'</div>';
     btns.className='btns';
     btns.innerHTML='<button class="b-know" data-k="know">认识</button>'+
