@@ -49,6 +49,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
 .b-forgot{background:var(--forgot);color:#2a0707}
 .b-next{background:#2563eb}
 .b-wrong{background:#374151;color:#fca5a5}
+.b-right{background:#14532d;color:#bbf7d0}
 .done{text-align:center;padding-top:30px}
 .done .big{font-size:23px;font-weight:700}
 .done .sub{color:var(--dim);font-size:14px;margin-top:10px;line-height:1.8}
@@ -81,7 +82,7 @@ var GROUP = 30;
 var GAP = [2,4,7,11];           /* 学完一轮后隔几天再来：2/4/7/11，累计 24 天 */
 var STAGE_MAX = GAP.length + 1; /* 走满 5 轮毕业 */
 
-var S = { day:0, groupsDay:0, st:{}, p:{}, due:{}, pending:[], mode:'new', phase:'ask', last:null };
+var S = { day:0, groupsDay:0, st:{}, p:{}, due:{}, pending:[], gsize:0, mode:'new', phase:'ask', last:null };
 
 function todayNum(){ var d=new Date(); return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -138,15 +139,22 @@ function startGroup(){
   var t=todayNum(), due=dueList(t), src, mode;
   if(due.length){ src=due.slice(0,GROUP); mode='review'; }
   else { src=newList().slice(0,GROUP); mode='new'; }
-  S.pending=src.slice(); S.mode=mode; S.phase=src.length?'ask':'empty'; S.last=null;
-  for(var i=0;i<S.pending.length;i++) S.p[i]=0;
+  S.pending=src.slice(); S.gsize=src.length; S.mode=mode; S.phase=src.length?'ask':'empty'; S.last=null;
   save(); render();
 }
 
-function advance(wrong){
+function requeue(){
+  var id=S.pending.shift();
+  if(!S.pending.length){ S.pending.push(id); return; }
+  var at=1+Math.floor(Math.random()*S.pending.length);   /* 不放回第一位，其余随机 */
+  S.pending.splice(at,0,id);
+}
+function advance(mode){
   if(!S.pending.length){ startGroup(); return; }
   var id=S.pending[0];
-  var kind = wrong ? 'wrong' : (S.last?S.last.kind:'know');
+  var kind = (mode==='wrong') ? 'wrong'
+           : (mode==='right') ? 'know'
+           : (S.last?S.last.kind:'know');
   var t=todayNum();
 
   if(kind==='know'){
@@ -161,11 +169,11 @@ function advance(wrong){
       }
       S.pending.shift(); S.p[id]=0;
     } else {
-      S.pending.push(S.pending.shift());
+      requeue();
     }
   } else {
     S.p[id]=0;
-    S.pending.push(S.pending.shift());
+    requeue();
   }
   S.phase='ask'; S.last=null;
   if(!S.pending.length){ S.groupsDay=(S.groupsDay||0)+1; S.phase='groupDone'; }
@@ -201,9 +209,9 @@ function render(){
   }
 
   var id=S.pending[0], w=W[id], pos=splitPos(w[1]), pass=S.p[id]||0;
-  var left=S.pending.length;
-  gtot.textContent=left; gin.textContent=0;
-  document.getElementById('bar').style.width=((1-left/GROUP)*100).toFixed(1)+'%';
+  var left=S.pending.length, gsz=S.gsize||GROUP, done=Math.max(0,gsz-left);
+  gtot.textContent=gsz; gin.textContent=done;
+  document.getElementById('bar').style.width=((done/gsz)*100).toFixed(1)+'%';
 
   var head='<div class="word'+(w[0].length>16?' small':'')+'">'+esc(w[0])+'<span class="spk-w">🔊</span></div>';
 
@@ -230,12 +238,14 @@ function render(){
           '<div class="en">'+esc(w[2])+'</div><div class="zh">'+esc(w[3])+'</div></div>'+
         '<div class="ledger">'+note+'</div>'+
       '</div>';
+    var wasKnow = S.last && S.last.kind==='know';
     btns.className='btns col';
     btns.innerHTML='<button class="b-next" id="nx">下一个 →</button>'+
-                   '<button class="b-wrong" id="wrong">记错了，重来</button>';
+      (wasKnow ? '<button class="b-wrong" id="alt">记错了，重来</button>'
+               : '<button class="b-right" id="alt">记对了（改成认识）</button>');
     hint.textContent='点单词可以再听一遍';
-    document.getElementById('nx').onclick=function(){ advance(false); };
-    document.getElementById('wrong').onclick=function(){ advance(true); };
+    document.getElementById('nx').onclick=function(){ advance(); };
+    document.getElementById('alt').onclick=function(){ advance(wasKnow?'wrong':'right'); };
     stage.querySelector('.word').onclick=function(){ playWord(w[0]); };
   }
 }
