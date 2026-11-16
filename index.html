@@ -72,7 +72,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261115c"></script>
+<script src="words.js?v=20261115d"></script>
 <script>
 (function(){
 'use strict';
@@ -80,7 +80,7 @@ var W = window.WORDS || [];
 var KEY = 'vocab_v4';
 var GROUP = 30;
 var GAP = [1,2,4,7];            /* 1/2/4/7，累计 14 天毕业 */
-var NEW_CAP = 120;              /* 每天新词上限（100-150 之间取中） */
+var NEW_CAP = 150;              /* 每天新词上限 */
 var STAGE_MAX = GAP.length + 1; /* 走满 5 轮毕业 */
 
 var S = { day:0, groupsDay:0, newCount:0, st:{}, p:{}, due:{}, pending:[], gsize:0, mode:'new', phase:'ask', last:null };
