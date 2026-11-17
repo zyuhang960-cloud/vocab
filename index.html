@@ -72,7 +72,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261116b"></script>
+<script src="words.js?v=20261116d"></script>
 <script>
 (function(){
 'use strict';
@@ -103,6 +103,21 @@ function load(){
   if(!had) migrate();
   var t=todayNum();
   if(S.day!==t){ S.day=t; S.groupsDay=0; S.newCount=0; }
+  /* 一次性迁移（旧版间隔 = 2 天起步，导致第一轮被排到明天）：
+     把还没做过第一轮复习、但被排到晚于今天的词，拉回今天。只跑一次。 */
+  try{
+    if(S.v!==2){
+      for(var k in S.st){
+        var i=+k;
+        if(S.st[i]===1 && S.due[i]!==undefined && S.due[i]>t){ S.due[i]=t; }
+      }
+      S.v=2;
+    }
+    for(var k2 in S.st){
+      var j=+k2;
+      if(S.due[j]!==undefined && S.due[j]>t+7){ S.due[j]=t; }
+    }
+  }catch(e){}
 }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function splitPos(g){ var m=/^(n|vt|vi|v|a|ad|prep|conj|pron|num|art|aux|int)\./.exec(g); return m?[m[1],g.slice(m[0].length)]:['',g]; }
@@ -196,6 +211,7 @@ function advance(mode){
 /* ---------- 渲染 ---------- */
 function render(){
   var t=todayNum();
+  if(S.day!==t){ S.day=t; S.groupsDay=0; S.newCount=0; }
   document.getElementById('gdone').textContent=S.groupsDay||0;
   document.getElementById('due').textContent=dueList(t).length;
   document.getElementById('newc').textContent=S.newCount||0;
