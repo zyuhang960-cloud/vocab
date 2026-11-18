@@ -72,7 +72,7 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261116h"></script>
+<script src="words.js?v=20261117a"></script>
 <script>
 (function(){
 'use strict';
@@ -83,7 +83,8 @@ var GAP = [2,4,7,11];           /* 2/4/7/11，累计 24 天毕业 */
 var NEW_CAP = 150;              /* 每天新词上限 */
 var STAGE_MAX = GAP.length + 1; /* 走满 5 轮毕业 */
 
-var S = { day:0, groupsDay:0, newCount:0, st:{}, p:{}, due:{}, pending:[], gsize:0, cur:null, mode:'new', phase:'ask', last:null };
+var S = { day:0, groupsDay:0, newCount:0, st:{}, p:{}, due:{}, pending:[], gids:[], gsize:0, cur:null, mode:'new', phase:'ask', last:null,
+          sp:[], spi:0, spw:[], spo:null };
 
 function todayNum(){ var d=new Date(); return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -100,6 +101,7 @@ function load(){
   var had=false;
   try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); for(var k in o) S[k]=o[k]; had=true; } }catch(e){}
   if(!S.st) S.st={}; if(!S.p) S.p={}; if(!S.due) S.due={}; if(!S.pending) S.pending=[]; if(S.cur===undefined) S.cur=null;
+  if(!S.sp) S.sp=[]; if(!S.spw) S.spw=[]; if(typeof S.spi!=='number') S.spi=0;
   if(!had) migrate();
   var t=todayNum();
   if(S.day!==t){ S.day=t; S.groupsDay=0; S.newCount=0; }
@@ -179,7 +181,7 @@ function startGroup(){
     if(quota <= 0){ S.pending=[]; S.gsize=0; S.mode='new'; S.phase='quota'; save(); render(); return; }
     src = shuffle(nw.slice()).slice(0, Math.min(GROUP, quota)); S.mode='new';
   }
-  S.pending=src.slice(); S.gsize=src.length; S.cur=null;
+  S.pending=src.slice(); S.gids=src.slice(); S.gsize=src.length; S.cur=null;
   S.grev = S.mode==='review' ? src.length : 0;
   S.gnew = S.mode==='new' ? src.length : 0;
   S.phase=src.length?'ask':'empty'; S.last=null;
@@ -214,8 +216,37 @@ function advance(mode){
 
   S.phase='ask'; S.last=null;
 
-  if(!S.pending.length){ S.groupsDay=(S.groupsDay||0)+1; S.cur=null; S.phase='groupDone'; }
+  if(!S.pending.length){
+    S.groupsDay=(S.groupsDay||0)+1; S.cur=null;
+    startSpell(S.gids.slice());
+    return;
+  }
   else pickNext();                    /* 每次都从 30 个里重新随机抽 */
+  save(); render();
+}
+
+function norm(s){ return String(s).toLowerCase().replace(/[^a-z0-9]/g,''); }
+function startSpell(ids){
+  S.sp=shuffle(ids.slice()); S.spi=0; S.spw=[]; S.spo=null;
+  S.phase = S.sp.length ? 'spell' : 'groupDone';
+  save(); render();
+}
+function spellSubmit(){
+  if(S.phase!=='spell') return;
+  var id=S.sp[S.spi], w=W[id];
+  var ok = norm(document.getElementById('spIn').value)===norm(w[0]);
+  S.spo={ok:ok, ans:w[0]};
+  S.phase='spellans';
+  if(!ok) S.spw.push(id);
+  playWord(w[0]);
+  save(); render();
+}
+function spellNext(){
+  S.spo=null; S.spi++;
+  if(S.spi>=S.sp.length){
+    if(S.spw.length){ S.sp=S.spw.slice(); S.spw=[]; S.spi=0; S.phase='spell'; }
+    else { S.phase='groupDone'; }
+  } else S.phase='spell';
   save(); render();
 }
 
@@ -257,6 +288,41 @@ function render(){
     btns.innerHTML='<button class="b-next" id="nb">下一组 →</button>';
     hint.textContent='累了就停，明天会接着排';
     document.getElementById('nb').onclick=function(){ startGroup(); };
+    return;
+  }
+
+  /* ---------- 拼写 ---------- */
+  if(S.phase==='spell' || S.phase==='spellans'){
+    var sid=S.sp[S.spi], sw=W[sid], spos=splitPos(sw[1]);
+    var leftN=S.sp.length-S.spi;
+    gtot.textContent=S.sp.length; gin.textContent=S.spi;
+    document.getElementById('bar').style.width=((S.spi/S.sp.length)*100).toFixed(1)+'%';
+    var q='<div class="tag">拼写 · 第 '+(S.spi+1)+' / '+S.sp.length+' 个</div>'+
+      '<div class="def" style="margin-top:14px">'+(spos[0]?'<span class="poz">'+spos[0]+'</span>':'')+esc(fmtGloss(spos[1]))+'</div>';
+    if(S.phase==='spell'){
+      stage.innerHTML=q+
+        '<div class="ask" style="margin-top:16px"><input id="spIn" placeholder="输入对应的英文" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"></div>';
+      btns.className='btns';
+      btns.innerHTML='<button class="b-next" id="spGo">提交</button>';
+      hint.textContent='拼不出来就先空着，提交后看答案';
+      var inp=document.getElementById('spIn');
+      inp.focus();
+      inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); spellSubmit(); } });
+      document.getElementById('spGo').onclick=spellSubmit;
+    } else {
+      var o=S.spo||{ok:false,ans:sw[0]};
+      stage.innerHTML=q+
+        '<div class="ans show">'+
+          '<div class="verdict" style="color:'+(o.ok?'#4ade80':'#fca5a5')+'">'+(o.ok?'✅ 拼对了':'❌ 拼错了')+'</div>'+
+          '<div style="font-size:24px;font-weight:700">'+esc(o.ans)+'</div>'+
+        '</div>'+
+        (S.spw.length?'<div class="ledger">拼错 '+S.spw.length+' 个，最后一轮再拼</div>':'');
+      btns.className='btns';
+      btns.innerHTML='<button class="b-next" id="spNx">下一个 →</button>';
+      hint.textContent='点单词可再听一遍';
+      document.getElementById('spNx').onclick=spellNext;
+      stage.querySelector('.def').onclick=function(){ playWord(sw[0]); };
+    }
     return;
   }
 
