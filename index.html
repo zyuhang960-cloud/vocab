@@ -72,18 +72,18 @@ button:active{transform:scale(.97);filter:brightness(1.15)}
   <div class="btns" id="btns"></div>
   <div class="hint" id="hint"></div>
 </footer>
-<script src="words.js?v=20261116e"></script>
+<script src="words.js?v=20261116g"></script>
 <script>
 (function(){
 'use strict';
 var W = window.WORDS || [];
 var KEY = 'vocab_v4';
 var GROUP = 30;
-var GAP = [1,2,4,7];            /* 1/2/4/7，累计 14 天毕业 */
+var GAP = [2,4,7];              /* 2/4/7，累计 13 天毕业 */
 var NEW_CAP = 150;              /* 每天新词上限 */
 var STAGE_MAX = GAP.length + 1; /* 走满 5 轮毕业 */
 
-var S = { day:0, groupsDay:0, newCount:0, st:{}, p:{}, due:{}, pending:[], gsize:0, miss:{}, mode:'new', phase:'ask', last:null };
+var S = { day:0, groupsDay:0, newCount:0, st:{}, p:{}, due:{}, pending:[], gsize:0, cur:null, mode:'new', phase:'ask', last:null };
 
 function todayNum(){ var d=new Date(); return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000); }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -99,7 +99,7 @@ function migrate(){
 function load(){
   var had=false;
   try{ var raw=localStorage.getItem(KEY); if(raw){ var o=JSON.parse(raw); for(var k in o) S[k]=o[k]; had=true; } }catch(e){}
-  if(!S.st) S.st={}; if(!S.p) S.p={}; if(!S.due) S.due={}; if(!S.pending) S.pending=[]; if(!S.miss) S.miss={};
+  if(!S.st) S.st={}; if(!S.p) S.p={}; if(!S.due) S.due={}; if(!S.pending) S.pending=[]; if(S.cur===undefined) S.cur=null;
   if(!had) migrate();
   var t=todayNum();
   if(S.day!==t){ S.day=t; S.groupsDay=0; S.newCount=0; }
@@ -161,18 +161,13 @@ function dueList(t){
 function newList(){ var a=[]; for(var i=0;i<W.length;i++) if(!S.st[i]) a.push(i); return a; }
 
 /* ---------- 组 ---------- */
-function bumpMiss(id){ S.miss[id]=(S.miss[id]||0)+1; }
-function missTop(n){
-  var a=[]; for(var k in S.miss){ if(S.miss[k]>0 && S.st[k]!==STAGE_MAX) a.push(+k); }
-  a.sort(function(x,y){ return S.miss[y]-S.miss[x]; });
-  return a.slice(0,n||30);
-}
 function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
-function startHard(){
-  var ids=missTop(30);
-  if(!ids.length) return;
-  S.pending=ids; S.gsize=ids.length; S.mode='hard'; S.phase='ask'; S.last=null;
-  save(); render();
+function pickNext(){
+  if(!S.pending.length){ S.cur=null; return; }
+  var prev=S.cur;
+  var i=Math.floor(Math.random()*S.pending.length);
+  if(S.pending.length>1 && S.pending[i]===prev) i=(i+1)%S.pending.length;  /* 只是不连着同一个 */
+  S.cur=S.pending[i];
 }
 function startGroup(){
   var t=todayNum(), due=dueList(t), nw=newList(), src=[];
@@ -184,26 +179,17 @@ function startGroup(){
     if(quota <= 0){ S.pending=[]; S.gsize=0; S.mode='new'; S.phase='quota'; save(); render(); return; }
     src = shuffle(nw.slice()).slice(0, Math.min(GROUP, quota)); S.mode='new';
   }
-  S.pending=src; S.gsize=src.length;
+  S.pending=src.slice(); S.gsize=src.length; S.cur=null;
   S.grev = S.mode==='review' ? src.length : 0;
   S.gnew = S.mode==='new' ? src.length : 0;
   S.phase=src.length?'ask':'empty'; S.last=null;
+  pickNext();
   save(); render();
 }
 
-function requeue(){
-  var id=S.pending.shift();
-  S.pending.push(id);
-  shuffle(S.pending);                    /* 每次作答后整组重排，不是小范围换来换去 */
-  if(S.pending.length>1 && S.pending[0]===id){            /* 别让它紧接着又出现 */
-    var j=1+Math.floor(Math.random()*(S.pending.length-1));
-    S.pending[0]=S.pending[j]; S.pending[j]=id;
-  }
-}
 function advance(mode){
   if(!S.pending.length){ startGroup(); return; }
-  var id=S.pending[0];
-  if(mode==='wrong') bumpMiss(id);
+  var id=(S.cur===null||S.pending.indexOf(S.cur)<0) ? S.pending[0] : S.cur;
   var kind = (mode==='wrong') ? 'wrong'
            : (mode==='right') ? 'know'
            : (S.last?S.last.kind:'know');
@@ -219,16 +205,17 @@ function advance(mode){
         if(st>=STAGE_MAX){ S.st[id]=STAGE_MAX; }
         else { S.st[id]=st; S.due[id]=t+GAP[st-1]; }
       }
-      S.pending.shift(); S.p[id]=0;
-    } else {
-      requeue();
+      S.p[id]=0;
+      S.pending=S.pending.filter(function(x){ return x!==id; });   /* 满三遍，出组 */
     }
   } else {
-    S.p[id]=0;
-    requeue();
+    S.p[id]=0;                        /* 模糊/忘记/记错了：遍数清零，留在组里 */
   }
+
   S.phase='ask'; S.last=null;
-  if(!S.pending.length){ S.groupsDay=(S.groupsDay||0)+1; S.phase='groupDone'; }
+
+  if(!S.pending.length){ S.groupsDay=(S.groupsDay||0)+1; S.cur=null; S.phase='groupDone'; }
+  else pickNext();                    /* 每次都从 30 个里重新随机抽 */
   save(); render();
 }
 
@@ -265,7 +252,7 @@ function render(){
     document.getElementById('bar').style.width='100%';
     stage.innerHTML='<div class="done"><div class="big">本组过完了 ✅</div>'+
       '<div class="sub">今天已完成 <b>'+(S.groupsDay||0)+'</b> 组<br>复习 '+(S.grev||0)+' 个 · 新词 '+(S.newCount||0)+'/'+NEW_CAP+'<br>待复习 '+dueList(t).length+' 个 · 未学 '+newList().length+' 个'+
-      (missTop(999).length?('<br><a href="#" id="hardLink2" style="color:#f59e0b">易错词 '+missTop(999).length+' 个 · 点此专练</a>'):'')+'</div></div>';
+      '</div></div>';
     btns.className='btns';
     btns.innerHTML='<button class="b-next" id="nb">下一组 →</button>';
     hint.textContent='累了就停，明天会接着排';
@@ -273,7 +260,8 @@ function render(){
     return;
   }
 
-  var id=S.pending[0], w=W[id], pos=splitPos(w[1]), pass=S.p[id]||0;
+  if(S.cur===null || S.pending.indexOf(S.cur)<0) pickNext();
+  var id=S.cur, w=W[id], pos=splitPos(w[1]), pass=S.p[id]||0;
   var left=S.pending.length, gsz=S.gsize||GROUP, done=Math.max(0,gsz-left);
   gtot.textContent=gsz; gin.textContent=done;
   document.getElementById('bar').style.width=((done/gsz)*100).toFixed(1)+'%';
@@ -288,14 +276,10 @@ function render(){
     btns.innerHTML='<button class="b-know" data-k="know">认识</button>'+
                    '<button class="b-vague" data-k="vague">模糊</button>'+
                    '<button class="b-forgot" data-k="forgot">忘记了</button>';
-    var mc=missTop(999).length;
-    hint.innerHTML='想不起来就点「忘记了」，这个词从第 1 遍重来'+(mc?('　·　<a href="#" id="hardLink" style="color:#f59e0b">易错词 '+mc+'</a>'):'');
-    var hl=document.getElementById('hardLink');
-    if(hl) hl.onclick=function(e){ e.preventDefault(); startHard(); };
+    hint.textContent='想不起来就点「忘记了」，这个词从第 1 遍重来';
     [].forEach.call(btns.querySelectorAll('button[data-k]'),function(b){
       b.onclick=function(){
         var k=b.getAttribute('data-k');
-        if(k!=='know') bumpMiss(id);
         S.last={id:id,kind:k}; S.phase='answer';
         playWord(w[0]);                    /* 先发音频请求，再渲染 */
         save(); render();
@@ -330,8 +314,8 @@ function render(){
 
 load();
 if(!S.pending.length && S.phase!=='groupDone') startGroup(); else render();
-window.__app={ get S(){return S;}, W:W, render:render, advance:advance, startGroup:startGroup, startHard:startHard,
-               dueList:dueList, newList:newList, missTop:missTop, GAP:GAP, STAGE_MAX:STAGE_MAX };
+window.__app={ get S(){return S;}, W:W, render:render, advance:advance, startGroup:startGroup,
+               dueList:dueList, newList:newList, GAP:GAP, STAGE_MAX:STAGE_MAX };
 window.addEventListener('pageshow', function(e){ if(e.persisted){ load(); render(); } });
 })();
 </script>
